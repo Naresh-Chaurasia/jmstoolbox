@@ -31,6 +31,7 @@ import javax.jms.ConnectionFactory;
 import javax.jms.JMSException;
 import javax.jms.Session;
 
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.titou10.jtb.config.gen.SessionDef;
 import org.titou10.jtb.jms.qm.DestinationData;
@@ -52,16 +53,21 @@ import com.microsoft.azure.servicebus.primitives.ConnectionStringBuilder;
  *
  * Implements Azure Service Bus Q Provider
  *
+ * https://docs.microsoft.com/en-us/azure/service-bus-messaging/how-to-use-java-message-service-20
+ *
  * @author Denis Forveille
  * @author anqyan@microsoft.com
  *
  */
 public class AzureServiceBusQManager extends QManager {
 
-   private static final org.slf4j.Logger        log                                 = LoggerFactory
+   private static final Logger                  log                                 = LoggerFactory
             .getLogger(AzureServiceBusQManager.class);
+
    private static final String                  CR                                  = "\n";
+
    private static final String                  CONNECTION_STRING_FORMAT            = "Endpoint=sb://%s;SharedAccessKeyName=%s;SharedAccessKey=%s";
+
    private static final String                  P_CONN_STR                          = "connectionString";
    private static final String                  P_CONN_IDLE_TIMEOUT                 = "idleTimeout";
    private static final String                  P_TRACE_FRAMES                      = "traceAmqpFrames";
@@ -86,14 +92,14 @@ public class AzureServiceBusQManager extends QManager {
    private final Map<Integer, Session>          sessionJMSs                         = new HashMap<>();
 
    public AzureServiceBusQManager() {
-      log.debug("Azue Service Bus");
+      log.debug("Azure Service Bus");
 
       parameters
                .add(new QManagerProperty(P_CONN_STR,
                                          false,
                                          JMSPropertyKind.STRING,
-                                         false,
-                                         "Connection String for Azure Service Bus. If it is provided, as an user you can enter dummy host and port in the session configuration.",
+                                         true,
+                                         "Connection String for Azure Service Bus. If provided, it will override dummy host/port in the session configuration.",
                                          null));
 
       parameters.add(new QManagerProperty(P_CONN_IDLE_TIMEOUT,
@@ -430,31 +436,39 @@ public class AzureServiceBusQManager extends QManager {
 
    static {
       StringBuilder sb = new StringBuilder(2048);
+      sb.append("Requirements").append(CR);
+      sb.append("------------").append(CR);
+      sb.append("An Azure Service Bus namespace in Premium tier is required.").append(CR);
+      sb.append(CR);
+      sb.append("The session definiton requires either:").append(CR);
+      sb.append("- the usage of a 'Service Bus connnection string' set in properties").append(CR);
+      sb.append("- the usage of the host, user and password fields set on the main session definition page").append(CR);
+      sb.append("In the former case, dummy values for host and port must be provided").append(CR);
+      sb.append(CR);
+      sb.append("https://docs.microsoft.com/en-us/azure/service-bus-messaging/how-to-use-java-message-service-20").append(CR);
+      sb.append(CR);
       sb.append("Extra JARS :").append(CR);
       sb.append("------------").append(CR);
       sb.append("No extra jar is needed as JMSToolBox is bundled with the latest Azure Service Bus jars").append(CR);
       sb.append(CR);
-      sb.append("Requirements").append(CR);
-      sb.append("------------").append(CR);
-      sb.append("https://docs.microsoft.com/en-us/azure/service-bus-messaging/how-to-use-java-message-service-20").append(CR);
-      sb.append("An Azure Service Bus namespace in Premium tier is required.").append(CR);
-      sb.append("A corresponding Service Bus connnection string is required. Please add it to the Properties tab.").append(CR);
-      sb.append(CR);
       sb.append("Connection:").append(CR);
       sb.append("-----------").append(CR);
-      sb.append("Host          : Azure Service Bus host name (eg abcdef.servicebus.windows.net)").append(CR);
-      sb.append("Port          : Azure Service Bus listening port (eg. 5762 for AMQP protocol)").append(CR);
-      sb.append("User/Password : Azure Service Bus SAS key name and SAS key");
-      sb.append(CR);
+      sb.append("Host          : if the 'connectionString' property is not provided, the Azure Service Bus host name (eg abcdef.servicebus.windows.net),")
+               .append(CR);
+      sb.append("                otherwise a dummy string").append(CR);
+      sb.append("Port          : a dummy value").append(CR);
+      sb.append("User/Password : if the 'connectionString' property is not provided,the Azure Service Bus SAQ key name and SAS key")
+               .append(CR);
+      sb.append("                otherwise leave empty").append(CR);
       sb.append(CR);
       sb.append("Properties:").append(CR);
       sb.append("-----------").append(CR);
-      sb.append("- ConnectionString(optional)   : Azure Service Bus connection string. If it is provided, as an user you can enter dummy host and port in the session configuration.")
+      sb.append("- connectionString : Azure Service Bus connection string. If provided, the host field in the session is useless and must be set to a dummy string")
                .append(CR);
-      sb.append("- IdleTimeout(optional)        : AMQP connection idle timeout for Azure Service Bus").append(CR);
-      sb.append("- traceAmqpFrames(optional)    : Whether to enable AMQP level logging: https://qpid.apache.org/releases/qpid-jms-0.54.0/docs/index.html#logging")
+      sb.append("- idleTimeout      : AMQP connection idle timeout for Azure Service Bus").append(CR);
+      sb.append("- traceAmqpFrames  : Whether to enable AMQP level logging: https://qpid.apache.org/releases/qpid-jms-0.54.0/docs/index.html#logging")
                .append(CR);
-      sb.append("Other reconnection related properties are optional, please see updated info in ").append(CR);
+      sb.append("Other reconnection related properties: ").append(CR);
       sb.append("https://github.com/Azure/azure-servicebus-jms/blob/master/src/main/java/com/microsoft/azure/servicebus/jms/ServiceBusJmsConnectionFactorySettings.java")
                .append(CR);
       sb.append(CR);
